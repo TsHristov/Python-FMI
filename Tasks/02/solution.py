@@ -1,3 +1,5 @@
+import operator
+
 class BinaryOperator:
     def __init__(self, symbol, function):
         self._symbol = symbol
@@ -10,68 +12,35 @@ class BinaryOperator:
         return self._symbol
 
 
-class OperationsMixin:
-    __operators = {
-        '+':  BinaryOperator('+',  lambda x, y: x + y),
-        '-':  BinaryOperator('-',  lambda x, y: x - y),
-        '*':  BinaryOperator('*',  lambda x, y: x * y),
-        '/':  BinaryOperator('/',  lambda x, y: x / y),
-        '//': BinaryOperator('//', lambda x, y: x // y),
-        '%':  BinaryOperator('%',  lambda x, y: x % y),
-        '<<': BinaryOperator('<<', lambda x, y: x << y),
-        '>>': BinaryOperator('>>', lambda x, y: x >> y),
-        '&':  BinaryOperator('&',  lambda x, y: x & y),
-        '^':  BinaryOperator('^',  lambda x, y: x ^ y),
-        '|':  BinaryOperator('|',  lambda x, y: x | y),
+class OperatorsMixin:
+    __OPERATORS = {
+        'add':      BinaryOperator('+',  operator.add),
+        'sub':      BinaryOperator('-',  operator.sub),
+        'mul':      BinaryOperator('*',  operator.mul),
+        'truediv':  BinaryOperator('/',  operator.truediv),
+        'floordiv': BinaryOperator('//', operator.floordiv),
+        'mod':      BinaryOperator('%',  operator.mod),
+        'lshift':   BinaryOperator('<<', operator.lshift),
+        'rshift':   BinaryOperator('>>', operator.rshift),
+        'and':      BinaryOperator('&',  operator.and_),
+        'or':       BinaryOperator('^',  operator.or_),
+        'xor':      BinaryOperator('|',  operator.xor),
     }
 
-    def __add__(self, other):
-        expression = self, self.__operators['+'], other
-        return Expression(expression)
+    def __init__(self):
+        for name, operator in self.__OPERATORS.items():
+            OperatorsMixin.create_operator(name, operator)
 
-    def __sub__(self, other):
-        expression = self, self.__operators['-'], other
-        return Expression(expression)
-
-    def __mul__(self, other):
-        expression = self, self.__operators['*'], other
-        return Expression(expression)
-
-    def __truediv__(self, other):
-        expression = self, self.__operators['/'], other
-        return Expression(expression)
-
-    def __floordiv__(self, other):
-        expression = self, self.__operators['//'], other
-        return Expression(expression)
-
-    def __mod__(self, other):
-        expression = self, self.__operators['%'], other
-        return Expression(expression)
-
-    def __lshift__(self, other):
-        expression = self, self.__operators['<<'], other
-        return Expression(expression)
-
-    def __rshift__(self, other):
-        expression = self, self.__operators['>>'], other
-        return Expression(expression)
-
-    def __and__(self, other):
-        expression = self, self.__operators['&'], other
-        return Expression(expression)
-
-    def __xor__(self, other):
-        expression = self, self.__operators['^'], other
-        return Expression(expression)
-
-    def __or__(self, other):
-        expression = self, self.__operators['|'], other
-        return Expression(expression)
+    @classmethod
+    def create_operator(cls, name, operator):
+        def set_operator(self, other):
+            return Expression((self, operator, other))
+        setattr(cls, "__{}__".format(name), set_operator)
 
 
-class Constant(OperationsMixin):
+class Constant(OperatorsMixin):
     def __init__(self, value):
+        super().__init__()
         self._value = value
 
     def evaluate(self, **kwargs):
@@ -81,8 +50,9 @@ class Constant(OperationsMixin):
         return str(self._value)
 
 
-class Variable(OperationsMixin):
+class Variable(OperatorsMixin):
     def __init__(self, name):
+        super().__init__()
         self._name = name
 
     @property
@@ -112,7 +82,7 @@ class Expression:
         return names
 
     def __str__(self):
-        result = "{}{}{}".format(self._lhs, self._operator, self._rhs)
+        result = "({} {} {})".format(self._lhs, self._operator, self._rhs)
         return result
 
 
