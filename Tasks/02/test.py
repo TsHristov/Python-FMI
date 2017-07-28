@@ -3,29 +3,38 @@ import solution
 
 
 class SolutionTest(unittest.TestCase):
-    def test_create_expression(self):
-        plus = solution.create_operator('+', lambda lhs, rhs: lhs + rhs)
-        minus = solution.create_operator('-', lambda lhs, rhs: lhs - rhs)
-        times = solution.create_operator('*', lambda lhs, rhs: lhs * rhs)
-        six = solution.create_constant(6)
-        nine = solution.create_constant(9)
-        expression = solution.create_expression((six, times, nine))
-        self.assertEqual(expression.evaluate(),54)
-        expression = solution.create_expression((six, plus, nine))
-        self.assertEqual(expression.evaluate(),15)
-        expression = solution.create_expression((nine, minus, six))
-        self.assertEqual(expression.evaluate(),3)
-
     def test_create_constant(self):
         constant = solution.create_constant(5)
         self.assertEqual(constant.evaluate(), 5)
 
-    def test_add(self):
+    def test_create_expression(self):
+        plus = solution.create_operator('+', lambda lhs, rhs: lhs + rhs)
+        minus = solution.create_operator('-', lambda lhs, rhs: lhs - rhs)
+        times = solution.create_operator('*', lambda lhs, rhs: lhs * rhs)
+        x = solution.create_variable('x')
+        nine = solution.create_constant(9)
+        expression = solution.create_expression((x, plus, nine))
+        self.assertEqual(expression.evaluate(x=6), 15)
+        expression = solution.create_expression((x, minus, nine))
+        self.assertEqual(expression.evaluate(x=6), -3)
+        expression = solution.create_expression((x, times, nine))
+        self.assertEqual(expression.evaluate(x=6), 54)
+
+    # def test_create_nested_expression(self):
+    #     x = solution.create_variable('x')
+    #     y = solution.create_variable('y')
+    #     twelve = solution.create_constant(12)
+    #     times = solution.create_operator('*', lambda lhs, rhs: lhs * rhs)
+    #     plus = solution.create_operator('+', lambda lhs, rhs: lhs + rhs)
+    #     expression = solution.create_expression((x, plus, (y, times, twelve)))
+    #     self.assertEqual(expression.evaluate(x=2, y=2), 26)
+
+    def test_get_variable_names(self):
         plus = solution.create_operator('+', lambda lhs, rhs: lhs + rhs)
         x = solution.create_variable('x')
-        y = solution.create_variable('y')
-        expression = solution.create_expression((x, plus, y))
-        self.assertEqual(expression.evaluate(x=5, y=3), 8)
+        nine = solution.create_constant(10)
+        expression = solution.create_expression((x,plus,nine))
+        self.assertEqual(expression.variable_names(), ('x',))
 
     def test_add_constant_and_variable(self):
         y = solution.create_variable('y')
@@ -35,19 +44,21 @@ class SolutionTest(unittest.TestCase):
         expression = twelve + y
         self.assertEqual(expression.evaluate(y=3), 15)
 
-    def test_sub(self):
-        minus = solution.create_operator('-', lambda lhs, rhs: lhs - rhs)
-        x = solution.create_variable('x')
+    def test_sub_constant_and_variable(self):
         y = solution.create_variable('y')
-        expression = solution.create_expression((x, minus, y))
-        self.assertEqual(expression.evaluate(x=5, y=3), 2)
+        twelve = solution.create_constant(12)
+        expression = y - twelve
+        self.assertEqual(expression.evaluate(y=13), 1)
+        expression = twelve - y
+        self.assertEqual(expression.evaluate(y=10), 2)
 
-    def test_mul(self):
-        times = solution.create_operator('*', lambda lhs, rhs: lhs * rhs)
-        x = solution.create_variable('x')
+    def test_mul_constant_and_variable(self):
         y = solution.create_variable('y')
-        expression = solution.create_expression((x, times, y))
-        self.assertEqual(expression.evaluate(x=5, y=3), 15)
+        ten = solution.create_constant(10)
+        expression = y * ten
+        self.assertEqual(expression.evaluate(y=13), 130)
+        expression = ten * y
+        self.assertEqual(expression.evaluate(y=13), 130)
 
 if __name__ == '__main__':
     unittest.main()

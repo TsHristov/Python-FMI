@@ -7,7 +7,7 @@ class BinaryOperator:
         return self._function(lhs, rhs)
 
     def __str__(self):
-        return str(self._symbol)
+        return self._symbol
 
 
 class OperationsMixin:
@@ -34,41 +34,45 @@ class OperationsMixin:
         return Expression(expression)
 
     def __mul__(self, other):
-        pass
+        expression = self, self.__operators['*'], other
+        return Expression(expression)
 
     def __truediv__(self, other):
-        pass
+        expression = self, self.__operators['/'], other
+        return Expression(expression)
 
     def __floordiv__(self, other):
-        pass
+        expression = self, self.__operators['//'], other
+        return Expression(expression)
 
     def __mod__(self, other):
-        pass
+        expression = self, self.__operators['%'], other
+        return Expression(expression)
 
     def __lshift__(self, other):
-        pass
+        expression = self, self.__operators['<<'], other
+        return Expression(expression)
 
     def __rshift__(self, other):
-        pass
+        expression = self, self.__operators['>>'], other
+        return Expression(expression)
 
     def __and__(self, other):
-        pass
+        expression = self, self.__operators['&'], other
+        return Expression(expression)
 
     def __xor__(self, other):
-        pass
+        expression = self, self.__operators['^'], other
+        return Expression(expression)
 
     def __or__(self, other):
-        pass
+        expression = self, self.__operators['|'], other
+        return Expression(expression)
 
 
 class Constant(OperationsMixin):
     def __init__(self, value):
         self._value = value
-
-    @property
-    def value(self):
-        """Get the constant`s value"""
-        return self._value
 
     def evaluate(self, **kwargs):
         return self._value
@@ -80,22 +84,10 @@ class Constant(OperationsMixin):
 class Variable(OperationsMixin):
     def __init__(self, name):
         self._name = name
-        self._value = None
 
     @property
     def name(self):
-        """Get the variable name"""
         return self._name
-
-    @property
-    def value(self):
-        """Get the variable value"""
-        return self._value
-
-    @value.setter
-    def value(self, val):
-        """Set the variable value"""
-        self._value = val
 
     def evaluate(self, **kwargs):
         return kwargs[self._name]
@@ -106,8 +98,7 @@ class Variable(OperationsMixin):
 
 class Expression:
     def __init__(self, expression_structure):
-        self._expression_structure = expression_structure
-        self._lhs, self._operator, self._rhs = self._expression_structure
+        self._lhs, self._operator, self._rhs = expression_structure
 
     def evaluate(self, **kwargs):
         lhs = self._lhs.evaluate(**kwargs)
@@ -117,11 +108,12 @@ class Expression:
     def variable_names(self):
         operands = [self._lhs, self._rhs]
         variables = [x for x in operands if isinstance(x, Variable)]
-        names = [x.name for x in variables]
+        names = tuple(x.name for x in variables)
         return names
 
     def __str__(self):
-        return (str(self._lhs), str(self._operator), str(self._rhs))
+        result = "{}{}{}".format(self._lhs, self._operator, self._rhs)
+        return result
 
 
 def create_constant(value):
