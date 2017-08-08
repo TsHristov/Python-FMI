@@ -20,14 +20,21 @@ class SolutionTest(unittest.TestCase):
         expression = solution.create_expression((x, times, nine))
         self.assertEqual(expression.evaluate(x=6), 54)
 
-    # def test_create_nested_expression(self):
-    #     x = solution.create_variable('x')
-    #     y = solution.create_variable('y')
-    #     twelve = solution.create_constant(12)
-    #     times = solution.create_operator('*', lambda lhs, rhs: lhs * rhs)
-    #     plus = solution.create_operator('+', lambda lhs, rhs: lhs + rhs)
-    #     expression = solution.create_expression((x, plus, (y, times, twelve)))
-    #     self.assertEqual(expression.evaluate(x=2, y=2), 26)
+    def test_language_literals(self):
+        x = solution.create_variable('x')
+        y = solution.create_variable('y')
+        expression = (x + 3 * (y-2)).evaluate(x=1, y=4)
+        self.assertEqual(expression, 7)
+
+    def test_nested_expression(self):
+        x = solution.create_variable('x')
+        y = solution.create_variable('y')
+        twelve = solution.create_constant(12)
+        times = solution.create_operator('*', lambda lhs, rhs: lhs * rhs)
+        plus =  solution.create_operator('+', lambda lhs, rhs: lhs + rhs)
+        expression = solution.create_expression((x, plus, (y, times, twelve)))
+        expression = expression.evaluate(x=1,y=1)
+        self.assertEqual(expression, 13)
 
     def test_get_variable_names(self):
         plus = solution.create_operator('+', lambda lhs, rhs: lhs + rhs)

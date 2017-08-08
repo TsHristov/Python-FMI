@@ -1,5 +1,6 @@
 import operator
 
+
 class BinaryOperator:
     def __init__(self, symbol, function):
         self._symbol = symbol
@@ -28,6 +29,7 @@ class OperatorsMixin:
     }
 
     def __init__(self):
+        """On initialization generates all operators"""
         for name, operator in self.__OPERATORS.items():
             OperatorsMixin.create_operator(name, operator)
 
@@ -35,7 +37,11 @@ class OperatorsMixin:
     def create_operator(cls, name, operator):
         def set_operator(self, other):
             return Expression((self, operator, other))
+
+        def set_reverse_operator(self, other):
+            return Expression((other, operator, self))
         setattr(cls, "__{}__".format(name), set_operator)
+        setattr(cls, "__r{}__".format(name), set_reverse_operator)
 
 
 class Constant(OperatorsMixin):
