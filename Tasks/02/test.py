@@ -22,9 +22,8 @@ class SolutionTest(unittest.TestCase):
 
     def test_language_literals(self):
         x = solution.create_variable('x')
-        y = solution.create_variable('y')
-        expression = (x + 3 * (y-2)).evaluate(x=1, y=4)
-        self.assertEqual(expression, 7)
+        expression = (x + 3).evaluate(x=1)
+        self.assertEqual(expression, 4)
 
     def test_nested_expression(self):
         x = solution.create_variable('x')

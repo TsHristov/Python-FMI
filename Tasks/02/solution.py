@@ -1,12 +1,17 @@
 import operator
 
 
+class Expression:
+    pass
+
+
 class BinaryOperator:
     def __init__(self, symbol, function):
         self._symbol = symbol
         self._function = function
 
     def __call__(self, lhs, rhs):
+        #return Expression((lhs, self._function, rhs))
         return self._function(lhs, rhs)
 
     def __str__(self):
@@ -77,8 +82,14 @@ class Expression:
         self._lhs, self._operator, self._rhs = expression_structure
 
     def evaluate(self, **kwargs):
-        lhs = self._lhs.evaluate(**kwargs)
-        rhs = self._rhs.evaluate(**kwargs)
+        if hasattr(self._lhs, 'evaluate'):
+            lhs = self._lhs.evaluate(**kwargs)
+        else:
+            lhs = Constant(self._lhs).evaluate(**kwargs)
+        if hasattr(self._rhs, 'evaluate'):
+            rhs = self._rhs.evaluate(**kwargs)
+        else:
+            rhs = Constant(self._rhs).evaluate(**kwargs)
         return self._operator(lhs, rhs)
 
     def variable_names(self):
