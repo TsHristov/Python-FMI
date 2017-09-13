@@ -1,10 +1,6 @@
 import operator
 
 
-class Expression:
-    pass
-
-
 class BinaryOperator:
     def __init__(self, symbol, function):
         self._symbol = symbol
