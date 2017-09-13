@@ -31,13 +31,13 @@ class SolutionTest(unittest.TestCase):
         twelve = solution.create_constant(12)
         times = solution.create_operator('*', lambda lhs, rhs: lhs * rhs)
         plus =  solution.create_operator('+', lambda lhs, rhs: lhs + rhs)
-        # import pdb; pdb.set_trace()
         expression = solution.create_expression((x, plus, (y, times, twelve)))
         expression = expression.evaluate(x=1, y=1)
         self.assertEqual(expression, 13)
-        expression = solution.create_expression(((x, plus, y), times, twelve))
+        expression = solution.create_expression((((x, plus, x), plus, y), times, twelve))
+        # import pdb; pdb.set_trace()
         expression = expression.evaluate(x=1, y=1)
-        self.assertEqual(expression, 24)
+        self.assertEqual(expression, 36)
 
 
     def test_get_variable_names(self):

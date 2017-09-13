@@ -7,7 +7,6 @@ class BinaryOperator:
         self._function = function
 
     def __call__(self, lhs, rhs):
-        #return Expression((lhs, self._function, rhs))
         return self._function(lhs, rhs)
 
     def __str__(self):
@@ -75,7 +74,16 @@ class Variable(OperatorsMixin):
 
 class Expression:
     def __init__(self, expression_structure):
-        self._lhs, self._operator, self._rhs = expression_structure
+        self._lhs, self._operator, self._rhs = type(self).unpack(expression_structure)
+
+    @staticmethod
+    def unpack(expression_structure):
+        lhs, _, rhs = expression_structure
+        if type(lhs) is tuple:
+            lhs = Expression(lhs)
+        elif type(rhs) is tuple:
+            rhs = Expression(rhs)
+        return (lhs, _, rhs)
 
     def evaluate(self, **kwargs):
         if hasattr(self._lhs, 'evaluate'):
