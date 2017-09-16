@@ -81,21 +81,17 @@ class Expression:
         lhs, _, rhs = expression_structure
         if type(lhs) is tuple:
             lhs = Expression(lhs)
-        elif type(rhs) is tuple:
+        if type(rhs) is tuple:
             rhs = Expression(rhs)
         return (lhs, _, rhs)
 
     def evaluate(self, **kwargs):
         if hasattr(self._lhs, 'evaluate'):
             lhs = self._lhs.evaluate(**kwargs)
-        elif type(self._lhs) is tuple:
-            lhs = Expression(self._lhs).evaluate(**kwargs)
         else:
             lhs = Constant(self._lhs).evaluate(**kwargs)
         if hasattr(self._rhs, 'evaluate'):
             rhs = self._rhs.evaluate(**kwargs)
-        elif type(self._rhs) is tuple:
-            rhs = Expression(self._rhs).evaluate(**kwargs)
         else:
             rhs = Constant(self._rhs).evaluate(**kwargs)
         return self._operator(lhs, rhs)
