@@ -32,7 +32,7 @@ class Post:
     def published_at(self):
         return self._published_at
 
-    
+
 class User:
     MAX_POSTS = 50
 
@@ -47,6 +47,8 @@ class User:
 
     def add_post(self, post_content):
         """Create a new Post for the User."""
+        if len(self._posts) == type(self).MAX_POSTS:
+            del self._posts[0]
         self._posts.append(Post(self.uuid, post_content))
 
     def get_post(self):
@@ -54,7 +56,7 @@ class User:
         for post in self._posts:
             yield post
 
-            
+
 class SocialGraph:
     def __init__(self):
         self._graph = {}

@@ -55,5 +55,12 @@ class TestUser(unittest.TestCase):
         self.assertEqual(post.content, "larodi")
         self.assertTrue(isinstance(post.published_at, datetime.datetime))
 
+    def test_max_posts(self):
+        for i in range(0, 50):
+            self.michael.add_post("something")
+        first_post = self.michael.get_post()
+        self.michael.add_post("something")
+        self.assertNotIn(first_post, self.michael._posts)
+        
 if __name__ == '__main__':
     unittest.main()
