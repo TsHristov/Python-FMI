@@ -61,11 +61,12 @@ class SocialGraph:
     def __init__(self):
         self._graph = {}
 
-    def _find_by_uuid(self, uuid):
+    def __find_by_user_uuid(self, uuid):
         """Return User with uuid=uuid"""
         user = [_ for _ in self._graph if _.uuid == uuid]
-        if user:
-            return user[0]
+        if not user:
+            raise UserDoesNotExistError
+        return user[0]
 
     def add_user(self, user):
         """Add an user in the graph."""
@@ -75,39 +76,44 @@ class SocialGraph:
 
     def get_user(self, user_uuid):
         """Return User object matching user_uuid"""
-        for user in self._graph:
-            if user.uuid == user_uuid:
-                return user
-
+        return self.__find_by_user_uuid(user_uuid)
+    
     def delete_user(self, user_uuid):
         """Delete a User object with a given user_uuid"""
-        user = [_ for _ in self._graph if _.uuid == user_uuid][0]
+        user = self.__find_by_user_uuid(user_uuid)
         del self._graph[user]
 
     def follow(self, follower_uuid, followee_uuid):
-        follower = self._find_by_uuid(follower_uuid)
-        followee = self._find_by_uuid(followee_uuid)
+        follower = self.__find_by_user_uuid(follower_uuid)
+        followee = self.__find_by_user_uuid(followee_uuid)
         self._graph[follower].append(followee)
 
-    def unfollow(self, follower, followee):
-        pass
+    def unfollow(self, follower_uuid, followee_uuid):
+        follower = self.__find_by_user_uuid(follower_uuid)
+        followee = self.__find_by_user_uuid(followee_uuid)
+        if self.is_following(follower_uuid, followee_uuid):
+            followee_index = self._graph[follower].index(followee)
+            del self._graph[follower][followee_index]
 
     def is_following(self, follower_uuid, followee_uuid):
-        """True if follower follows followee"""
-        follower = self._find_by_uuid(follower_uuid)
-        followee = self._find_by_uuid(followee_uuid)
+        """Return True if follower follows followee."""
+        follower = self.__find_by_user_uuid(follower_uuid)
+        followee = self.__find_by_user_uuid(followee_uuid)
         return followee in self._graph[follower]
 
     def followers(self, user_uuid):
-        """Return set of all users following user_uuid"""
-        pass
+        """Return set of all users` uuids following user_uuid."""
+        user = self.__find_by_user_uuid(user_uuid)
+        return {_.uuid for _ in self._graph
+                if user in self._graph[_]}
 
     def following(self, user_uuid):
-        """Return set of all uuid`s followed by user with uuid=user_uuid."""
-        pass
+        """Return set of all users` uuids followed by user_uuid."""
+        user = self.__find_by_user_uuid(user_uuid)
+        return {_.uuid for _ in self._graph[user]}
 
     def friends(self, user_uuid):
-        """Return set of all users that are friends with user_uuid."""
+        """Return set of all users` uuids that are friends with user_uuid."""
         return {_.uuid for _ in self._graph if
                 self.is_following(_.uuid, user_uuid) and
                 self.is_following(user_uuid, _.uuid)}

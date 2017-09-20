@@ -16,26 +16,60 @@ class TestSocialGraph(unittest.TestCase):
         self.graph.add_user(self.eric)
         self.graph.add_user(self.graham)
         self.graph.add_user(self.john)
+
+    def test_add_user(self):
         self.graph.add_user(self.michael)
-
-    def test_add_get_and_delete_user(self):
         with self.assertRaises(solution.UserAlreadyExistsError):
-            self.graph.add_user(self.terry)
-        self.graph.delete_user(self.terry.uuid)
-        self.graph.add_user(self.terry)
-        self.assertEqual(self.graph.get_user(self.terry.uuid), self.terry)
+            self.graph.add_user(self.michael)
+        self.assertIn(self.michael, self.graph._graph)
 
-    def test_following(self):
+    def test_get_user(self):
+        with self.assertRaises(solution.UserDoesNotExistError):
+            self.graph.get_user(self.michael.uuid)
+        self.graph.add_user(self.michael)
+        self.assertEqual(self.graph.get_user(self.michael.uuid), self.michael)
+
+    def test_delete_user(self):
+        with self.assertRaises(solution.UserDoesNotExistError):
+            self.graph.delete_user(self.michael.uuid)
+        self.graph.add_user(self.michael)
+        self.assertNotIn(self.michael.uuid, self.graph._graph)
+
+    def test_follow(self):
+        with self.assertRaises(solution.UserDoesNotExistError):
+            self.graph.follow(self.michael.uuid, self.eric.uuid)
         self.graph.follow(self.terry.uuid, self.eric.uuid)
         self.assertTrue(
             self.graph.is_following(self.terry.uuid, self.eric.uuid))
         self.assertFalse(
             self.graph.is_following(self.eric.uuid, self.terry.uuid))
 
+    def test_unfollow(self):
+        with self.assertRaises(solution.UserDoesNotExistError):
+            self.graph.follow(self.michael.uuid, self.eric.uuid)
+        self.graph.follow(self.terry.uuid, self.eric.uuid)
+        self.graph.unfollow(self.terry.uuid, self.eric.uuid)
+        self.assertFalse(self.graph.is_following(self.terry.uuid, self.eric.uuid))
+
+    def test_followers(self):
+        with self.assertRaises(solution.UserDoesNotExistError):
+            self.graph.followers(self.michael)
+        self.graph.follow(self.terry.uuid, self.eric.uuid)
+        self.graph.follow(self.john.uuid, self.eric.uuid)
+        self.assertEqual({self.terry.uuid, self.john.uuid}, self.graph.followers(self.eric.uuid))
+
+    def test_following(self):
+        with self.assertRaises(solution.UserDoesNotExistError):
+            self.graph.following(self.michael.uuid)
+        self.graph.follow(self.terry.uuid, self.eric.uuid)
+        self.graph.follow(self.terry.uuid, self.john.uuid)
+        self.assertEqual({self.eric.uuid, self.john.uuid},
+                         self.graph.following(self.terry.uuid))
+
     def test_friends(self):
         self.graph.follow(self.terry.uuid, self.eric.uuid)
-        # self.assertNotIn(self.eric.uuid, self.graph.friends(self.terry.uuid))
-        # self.assertNotIn(self.terry.uuid, self.graph.friends(self.eric.uuid))
+        self.assertNotIn(self.eric.uuid, self.graph.friends(self.terry.uuid))
+        self.assertNotIn(self.terry.uuid, self.graph.friends(self.eric.uuid))
         self.graph.follow(self.eric.uuid, self.terry.uuid)
         self.assertIn(self.eric.uuid, self.graph.friends(self.terry.uuid))
         self.assertIn(self.terry.uuid, self.graph.friends(self.eric.uuid))
@@ -44,6 +78,7 @@ class TestSocialGraph(unittest.TestCase):
 class TestUser(unittest.TestCase):
     def setUp(self):
         self.michael = solution.User("Michael Palin")
+        self.graph = solution.SocialGraph()
 
     def test_has_uuid(self):
         self.assertIsNotNone(getattr(self.michael, 'uuid'))
@@ -61,6 +96,6 @@ class TestUser(unittest.TestCase):
         first_post = self.michael.get_post()
         self.michael.add_post("something")
         self.assertNotIn(first_post, self.michael._posts)
-        
+
 if __name__ == '__main__':
     unittest.main()
