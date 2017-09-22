@@ -117,8 +117,23 @@ class SocialGraph:
     def max_distance(self, user_uuid):
         pass
 
-    def min_distance(self, user_uuid):
-        pass
+    def min_distance(self, from_user_uuid, to_user_uuid):
+        """Return the shortest path between two users in the graph."""
+        start = self.__find_by_user_uuid(from_user_uuid)
+        end = self.__find_by_user_uuid(to_user_uuid)
+        queue = deque([(start, 0)])
+        visited = []
+        max_count = 0
+        while queue:
+            current, count = queue.popleft()
+            max_count = count
+            visited.append(current)
+            if current == end:
+                return count
+            for followee in self._graph[current]:
+                if followee not in visited:
+                    queue.append((followee, count + 1))
+        return max_count
 
     def nth_layer_followings(self, user_uuid, n):
         pass

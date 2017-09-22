@@ -49,14 +49,16 @@ class TestSocialGraph(unittest.TestCase):
             self.graph.follow(self.michael.uuid, self.eric.uuid)
         self.graph.follow(self.terry.uuid, self.eric.uuid)
         self.graph.unfollow(self.terry.uuid, self.eric.uuid)
-        self.assertFalse(self.graph.is_following(self.terry.uuid, self.eric.uuid))
+        self.assertFalse(self.graph.is_following(self.terry.uuid,
+                                                 self.eric.uuid))
 
     def test_followers(self):
         with self.assertRaises(solution.UserDoesNotExistError):
             self.graph.followers(self.michael)
         self.graph.follow(self.terry.uuid, self.eric.uuid)
         self.graph.follow(self.john.uuid, self.eric.uuid)
-        self.assertEqual({self.terry.uuid, self.john.uuid}, self.graph.followers(self.eric.uuid))
+        self.assertEqual({self.terry.uuid, self.john.uuid},
+                          self.graph.followers(self.eric.uuid))
 
     def test_following(self):
         with self.assertRaises(solution.UserDoesNotExistError):
@@ -73,6 +75,17 @@ class TestSocialGraph(unittest.TestCase):
         self.graph.follow(self.eric.uuid, self.terry.uuid)
         self.assertIn(self.eric.uuid, self.graph.friends(self.terry.uuid))
         self.assertIn(self.terry.uuid, self.graph.friends(self.eric.uuid))
+
+    def test_max_distance(self):
+        pass
+
+    def test_min_distance(self):
+        self.graph.follow(self.terry.uuid, self.eric.uuid)
+        self.graph.follow(self.terry.uuid, self.graham.uuid)
+        self.graph.follow(self.graham.uuid, self.eric.uuid)
+        self.assertEqual(self.graph.min_distance(self.terry.uuid, self.eric.uuid), 1)
+        self.graph.follow(self.eric.uuid, self.john.uuid)
+        self.assertEqual(self.graph.min_distance(self.terry.uuid, self.john.uuid), 2)
 
 
 class TestUser(unittest.TestCase):
