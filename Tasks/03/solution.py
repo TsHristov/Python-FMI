@@ -1,5 +1,6 @@
-import uuid
-import datetime
+from uuid import uuid4
+from datetime import datetime
+from collections import deque
 
 
 class UserDoesNotExistError(Exception):
@@ -17,7 +18,7 @@ class UsersNotConnectedError(Exception):
 class Post:
     def __init__(self, uuid, content):
         self._author = uuid
-        self._published_at = datetime.datetime.now()
+        self._published_at = datetime.now()
         self._content = content
 
     @property
@@ -34,12 +35,10 @@ class Post:
 
 
 class User:
-    MAX_POSTS = 50
-
     def __init__(self, full_name):
         self._full_name = full_name
-        self._uuid = uuid.uuid4()
-        self._posts = []
+        self._uuid = uuid4()
+        self._posts = deque([], maxlen=50)
 
     @property
     def uuid(self):
@@ -47,14 +46,11 @@ class User:
 
     def add_post(self, post_content):
         """Create a new Post for the User."""
-        if len(self._posts) == type(self).MAX_POSTS:
-            del self._posts[0]
         self._posts.append(Post(self.uuid, post_content))
 
     def get_post(self):
         """Return generator over the User`s Posts."""
-        for post in self._posts:
-            yield post
+        return (post for post in self._posts)
 
 
 class SocialGraph:
@@ -77,7 +73,7 @@ class SocialGraph:
     def get_user(self, user_uuid):
         """Return User object matching user_uuid"""
         return self.__find_by_user_uuid(user_uuid)
-    
+
     def delete_user(self, user_uuid):
         """Delete a User object with a given user_uuid"""
         user = self.__find_by_user_uuid(user_uuid)
