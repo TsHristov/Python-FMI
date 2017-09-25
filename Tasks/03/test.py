@@ -58,7 +58,7 @@ class TestSocialGraph(unittest.TestCase):
         self.graph.follow(self.terry.uuid, self.eric.uuid)
         self.graph.follow(self.john.uuid, self.eric.uuid)
         self.assertEqual({self.terry.uuid, self.john.uuid},
-                          self.graph.followers(self.eric.uuid))
+                         self.graph.followers(self.eric.uuid))
 
     def test_following(self):
         with self.assertRaises(solution.UserDoesNotExistError):
@@ -87,9 +87,23 @@ class TestSocialGraph(unittest.TestCase):
         self.graph.follow(self.terry.uuid, self.eric.uuid)
         self.graph.follow(self.terry.uuid, self.graham.uuid)
         self.graph.follow(self.graham.uuid, self.eric.uuid)
-        self.assertEqual(self.graph.min_distance(self.terry.uuid, self.eric.uuid), 1)
+        self.assertEqual(self.graph.min_distance(self.terry.uuid,
+                                                 self.eric.uuid), 1)
         self.graph.follow(self.eric.uuid, self.john.uuid)
-        self.assertEqual(self.graph.min_distance(self.terry.uuid, self.john.uuid), 2)
+        self.assertEqual(self.graph.min_distance(self.terry.uuid,
+                                                 self.john.uuid), 2)
+
+    def test_nth_layer_followings(self):
+        self.graph.follow(self.terry.uuid, self.eric.uuid)
+        self.graph.follow(self.terry.uuid, self.graham.uuid)
+        self.assertEqual(self.graph.nth_layer_followings(self.terry.uuid, 1),
+                         {self.eric.uuid, self.graham.uuid})
+        self.graph.follow(self.graham.uuid, self.john.uuid)
+        self.assertEqual(self.graph.nth_layer_followings(self.terry.uuid, 2),
+                         {self.john.uuid})
+
+    def test_generate_feed(self):
+        pass
 
 
 class TestUser(unittest.TestCase):

@@ -125,22 +125,40 @@ class SocialGraph:
     def min_distance(self, from_user_uuid, to_user_uuid):
         """Return the shortest path between two users in the graph."""
         distance = math.inf
-        for user_uuid, level in  self.__bfs(from_user_uuid):
+        for user_uuid, level in self.__bfs(from_user_uuid):
             if user_uuid == to_user_uuid:
                 distance = level
                 break
         return distance
-    
+
     def nth_layer_followings(self, user_uuid, n):
-        pass
+        """Return all users followed by user_uuid at
+           distance n.
+        """
+        return {
+            user
+            for user, level in self.__bfs(user_uuid)
+            if level == n
+        }
 
     def generate_feed(self, user_uuid, offset=0, limit=10):
-        pass
+        """Return iterable over the most recent posts,
+           from user_uuid`s followees.
+        """
+        user = self.__find_by_user_uuid(user_uuid)
+        followees = [followee for followee in self._graph[user]]
+        all_posts = [post for followee in followees
+                     for post in followee.get_post()]
+        return sorted(
+            all_posts,
+            key=lambda post: post.published_at,
+            reverse=True
+        )[offset:][0:limit]
 
     def __bfs(self, start, end=None):
         """Perform BFS on the graph."""
         result = []
-        vertices   = deque([(start, 0)])
+        vertices = deque([(start, 0)])
         visited = set()
         while len(vertices) > 0:
             vertex, level = vertices.popleft()
