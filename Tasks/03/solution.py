@@ -1,3 +1,4 @@
+import math
 from uuid import uuid4
 from datetime import datetime
 from collections import deque
@@ -45,11 +46,11 @@ class User:
         return self._uuid
 
     def add_post(self, post_content):
-        """Create a new Post for the User."""
+        """Create a new post for the user."""
         self._posts.append(Post(self.uuid, post_content))
 
     def get_post(self):
-        """Return generator over the User`s Posts."""
+        """Return generator over the user`s posts."""
         return (post for post in self._posts)
 
 
@@ -115,28 +116,41 @@ class SocialGraph:
                 self.is_following(user_uuid, _.uuid)}
 
     def max_distance(self, user_uuid):
-        pass
+        """Return the distance to the farthest \
+           user from user with user_uuid.
+        """
+        # Return the last vertex with it`s level
+        return self.__bfs(user_uuid)[-1][1]
 
     def min_distance(self, from_user_uuid, to_user_uuid):
         """Return the shortest path between two users in the graph."""
-        start = self.__find_by_user_uuid(from_user_uuid)
-        end = self.__find_by_user_uuid(to_user_uuid)
-        queue = deque([(start, 0)])
-        visited = []
-        max_count = 0
-        while queue:
-            current, count = queue.popleft()
-            max_count = count
-            visited.append(current)
-            if current == end:
-                return count
-            for followee in self._graph[current]:
-                if followee not in visited:
-                    queue.append((followee, count + 1))
-        return max_count
-
+        distance = math.inf
+        for user_uuid, level in  self.__bfs(from_user_uuid):
+            if user_uuid == to_user_uuid:
+                distance = level
+                break
+        return distance
+    
     def nth_layer_followings(self, user_uuid, n):
         pass
 
     def generate_feed(self, user_uuid, offset=0, limit=10):
         pass
+
+    def __bfs(self, start, end=None):
+        """Perform BFS on the graph."""
+        result = []
+        vertices   = deque([(start, 0)])
+        visited = set()
+        while len(vertices) > 0:
+            vertex, level = vertices.popleft()
+            if vertex not in visited:
+                result.append((vertex, level))
+                visited.add(vertex)
+                neighbours = [
+                    (followee, level + 1)
+                    for followee in self.following(vertex)
+                    if followee not in visited
+                    ]
+                vertices.extend(neighbours)
+        return result

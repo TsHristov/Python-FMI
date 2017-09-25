@@ -77,7 +77,11 @@ class TestSocialGraph(unittest.TestCase):
         self.assertIn(self.terry.uuid, self.graph.friends(self.eric.uuid))
 
     def test_max_distance(self):
-        pass
+        self.graph.follow(self.terry.uuid, self.eric.uuid)
+        self.graph.follow(self.terry.uuid, self.graham.uuid)
+        self.graph.follow(self.graham.uuid, self.eric.uuid)
+        self.graph.follow(self.eric.uuid, self.john.uuid)
+        self.assertEqual(self.graph.max_distance(self.terry.uuid), 2)
 
     def test_min_distance(self):
         self.graph.follow(self.terry.uuid, self.eric.uuid)
