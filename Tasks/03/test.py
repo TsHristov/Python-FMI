@@ -103,7 +103,15 @@ class TestSocialGraph(unittest.TestCase):
                          {self.john.uuid})
 
     def test_generate_feed(self):
-        pass
+        self.graph.follow(self.terry.uuid, self.eric.uuid)
+        self.graph.follow(self.terry.uuid, self.john.uuid)
+        self.eric.add_post("1")
+        self.eric.add_post("2")
+        self.john.add_post("3")
+        self.john.add_post("4")
+        result = self.graph.generate_feed(self.terry.uuid)
+        result = list(map(lambda post: post.content, result))
+        self.assertEqual(result, ["4", "3", "2", "1"])
 
 
 class TestUser(unittest.TestCase):
