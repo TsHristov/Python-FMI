@@ -33,8 +33,10 @@ class TestSocialGraph(unittest.TestCase):
         with self.assertRaises(solution.UserDoesNotExistError):
             self.graph.delete_user(self.michael.uuid)
         self.graph.add_user(self.michael)
+        self.graph.follow(self.michael.uuid, self.terry.uuid)
         self.graph.delete_user(self.michael.uuid)
         self.assertNotIn(self.michael.uuid, self.graph.users)
+        self.assertNotIn(self.michael.uuid, self.graph.followers(self.terry.uuid))
 
     def test_follow(self):
         with self.assertRaises(solution.UserDoesNotExistError):

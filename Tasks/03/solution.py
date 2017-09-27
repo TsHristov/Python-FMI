@@ -75,7 +75,7 @@ class SocialGraph:
         if user.uuid in self.users:
             raise UserAlreadyExistsError
         self.users[user.uuid] = user
-        self.links[user.uuid] = []
+        self.links[user.uuid] = set()
 
     @__check_user_exists
     def get_user(self, user_uuid):
@@ -85,11 +85,20 @@ class SocialGraph:
     @__check_user_exists
     def delete_user(self, user_uuid):
         """Delete a User object matching user_uuid."""
+        # Make sure the deleted user is not following nor
+        # followed by another user anymore:
+        for follower in self.followers(user_uuid).copy():
+            self.unfollow(follower, user_uuid)
+        for followee in self.following(user_uuid).copy():
+            self.unfollow(user_uuid, followee)
         del self.users[user_uuid]
 
     @__check_user_exists
     def follow(self, follower_uuid, followee_uuid):
-        self.links[follower_uuid].append(followee_uuid)
+        """Make User with uuid: follower_uuid to follow
+           User with uuid: followee_uuid.
+        """
+        self.links[follower_uuid].add(followee_uuid)
 
     @__check_user_exists
     def unfollow(self, follower_uuid, followee_uuid):
@@ -113,7 +122,7 @@ class SocialGraph:
     @__check_user_exists
     def following(self, user_uuid):
         """Return set of all users` uuids followed by user_uuid."""
-        return set(self.links[user_uuid])
+        return self.links[user_uuid]
 
     @__check_user_exists
     def friends(self, user_uuid):
