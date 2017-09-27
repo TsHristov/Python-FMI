@@ -78,73 +78,73 @@ class SocialGraph:
         self.links[user.uuid] = set()
 
     @__check_user_exists
-    def get_user(self, user_uuid):
-        """Return User object matching user_uuid."""
-        return self.users[user_uuid]
+    def get_user(self, user):
+        """Return User object matching user."""
+        return self.users[user]
 
     @__check_user_exists
-    def delete_user(self, user_uuid):
-        """Delete a User object matching user_uuid."""
+    def delete_user(self, user):
+        """Delete a User object matching user."""
         # Make sure the deleted user is not following nor
         # followed by another user anymore:
-        for follower in self.followers(user_uuid).copy():
-            self.unfollow(follower, user_uuid)
-        for followee in self.following(user_uuid).copy():
-            self.unfollow(user_uuid, followee)
-        del self.users[user_uuid]
+        for follower in self.followers(user).copy():
+            self.unfollow(follower, user)
+        for followee in self.following(user).copy():
+            self.unfollow(user, followee)
+        del self.users[user]
 
     @__check_user_exists
-    def follow(self, follower_uuid, followee_uuid):
-        """Make User with uuid: follower_uuid to follow
-           User with uuid: followee_uuid.
+    def follow(self, follower, followee):
+        """Make User with uuid: follower to follow
+           User with uuid: followee.
         """
-        self.links[follower_uuid].add(followee_uuid)
+        self.links[follower].add(followee)
 
     @__check_user_exists
-    def unfollow(self, follower_uuid, followee_uuid):
-        """Make User with uuid: follower_uuid to unfollow
-           User with uuid: followee_uuid.
+    def unfollow(self, follower, followee):
+        """Make User with uuid: follower to unfollow
+           User with uuid: followee.
         """
-        if self.is_following(follower_uuid, followee_uuid):
-            self.links[follower_uuid].remove(followee_uuid)
+        if self.is_following(follower, followee):
+            self.links[follower].remove(followee)
 
     @__check_user_exists
-    def is_following(self, follower_uuid, followee_uuid):
+    def is_following(self, follower, followee):
         """Return True if follower follows followee."""
-        return followee_uuid in self.links[follower_uuid]
+        return followee in self.links[follower]
 
     @__check_user_exists
-    def followers(self, user_uuid):
-        """Return set of all users` uuids following user_uuid."""
+    def followers(self, user):
+        """Return set of all users` uuids following user."""
         return {follower for follower in self.links
-                if user_uuid in self.links[follower]}
+                if user in self.links[follower]}
 
     @__check_user_exists
-    def following(self, user_uuid):
-        """Return set of all users` uuids followed by user_uuid."""
-        return self.links[user_uuid]
+    def following(self, user):
+        """Return set of all users` uuids followed by user."""
+        return self.links[user]
 
     @__check_user_exists
-    def friends(self, user_uuid):
-        """Return set of all users` uuids that are friends with user_uuid."""
-        return {user for user in self.links if
-                self.is_following(user, user_uuid) and
-                self.is_following(user_uuid, user)}
+    def friends(self, user):
+        """Return set of all users` uuids that are friends with user."""
+        return {_ for _ in self.links if
+                self.is_following(_, user) and
+                self.is_following(user, _)}
 
     @__check_user_exists
-    def max_distance(self, user_uuid):
+    def max_distance(self, user):
         """Return the distance to the farthest \
-           user from user with user_uuid.
+           user from user.
         """
         # Return the last vertex with it`s level
-        return self.__bfs(user_uuid)[-1][1]
+        return self.__bfs(user)[-1][1]
 
     @__check_user_exists
-    def min_distance(self, from_user_uuid, to_user_uuid):
+    def min_distance(self, from_user, to_user):
         """Return the shortest path between two users in the graph."""
         distance = math.inf
-        for user_uuid, level in self.__bfs(from_user_uuid):
-            if user_uuid == to_user_uuid:
+        for user, level in self.__bfs(from_user):
+            if user == to_user:
                 distance = level
                 break
         if distance == math.inf:
@@ -152,20 +152,20 @@ class SocialGraph:
         return distance
 
     @__check_user_exists
-    def nth_layer_followings(self, user_uuid, n):
-        """Return all users followed by user_uuid at
+    def nth_layer_followings(self, user, n):
+        """Return all users followed by user at
            distance n.
         """
-        return {user for user, level
-                in self.__bfs(user_uuid)
+        return {usr for usr, level
+                in self.__bfs(user)
                 if level == n}
 
     @__check_user_exists
-    def generate_feed(self, user_uuid, offset=0, limit=10):
+    def generate_feed(self, user, offset=0, limit=10):
         """Return iterable over the most recent posts,
-           from user_uuid`s followees.
+           from user`s followees.
         """
-        followees = [followee for followee in self.links[user_uuid]]
+        followees = [followee for followee in self.links[user]]
         all_posts = [post for followee in followees
                      for post in self.users[followee].get_post()]
         return sorted(
