@@ -1,5 +1,5 @@
 import math
-from uuid import uuid4
+import uuid
 from datetime import datetime
 from collections import deque
 
@@ -17,8 +17,8 @@ class UsersNotConnectedError(Exception):
 
 
 class Post:
-    def __init__(self, uuid, content):
-        self._author = uuid
+    def __init__(self, user_uuid, content):
+        self._author = user_uuid
         self._published_at = datetime.now()
         self._content = content
 
@@ -38,7 +38,7 @@ class Post:
 class User:
     def __init__(self, full_name):
         self._full_name = full_name
-        self._uuid = uuid4()
+        self._uuid = uuid.uuid4()
         self._posts = deque([], maxlen=50)
 
     @property
@@ -56,65 +56,73 @@ class User:
 
 class SocialGraph:
     def __init__(self):
-        self._graph = {}
+        self.users = {}
+        self.links = {}
 
-    def __find_by_user_uuid(self, uuid):
-        """Return User with uuid=uuid"""
-        user = [_ for _ in self._graph if _.uuid == uuid]
-        if not user:
-            raise UserDoesNotExistError
-        return user[0]
+    def __check_user_exists(func):
+        """Decorator function that checks user existance in the graph."""
+        def checked_func(self, *uuids):
+            # Use only the uuids arguments:
+            uuids_only = [arg for arg in uuids if type(arg) is uuid.UUID]
+            for user_uuid in uuids_only:
+                if user_uuid not in self.users:
+                    raise UserDoesNotExistError
+            return func(self, *uuids)
+        return checked_func
 
     def add_user(self, user):
         """Add an user in the graph."""
-        if user in self._graph:
+        if user.uuid in self.users:
             raise UserAlreadyExistsError
-        self._graph[user] = []
+        self.users[user.uuid] = user
+        self.links[user.uuid] = []
 
+    @__check_user_exists
     def get_user(self, user_uuid):
-        """Return User object matching user_uuid"""
-        return self.__find_by_user_uuid(user_uuid)
+        """Return User object matching user_uuid."""
+        return self.users[user_uuid]
 
+    @__check_user_exists
     def delete_user(self, user_uuid):
-        """Delete a User object with a given user_uuid"""
-        user = self.__find_by_user_uuid(user_uuid)
-        del self._graph[user]
+        """Delete a User object matching user_uuid."""
+        del self.users[user_uuid]
 
+    @__check_user_exists
     def follow(self, follower_uuid, followee_uuid):
-        follower = self.__find_by_user_uuid(follower_uuid)
-        followee = self.__find_by_user_uuid(followee_uuid)
-        self._graph[follower].append(followee)
+        self.links[follower_uuid].append(followee_uuid)
 
+    @__check_user_exists
     def unfollow(self, follower_uuid, followee_uuid):
-        follower = self.__find_by_user_uuid(follower_uuid)
-        followee = self.__find_by_user_uuid(followee_uuid)
+        """Make User with uuid: follower_uuid to unfollow
+           User with uuid: followee_uuid.
+        """
         if self.is_following(follower_uuid, followee_uuid):
-            followee_index = self._graph[follower].index(followee)
-            del self._graph[follower][followee_index]
+            self.links[follower_uuid].remove(followee_uuid)
 
+    @__check_user_exists
     def is_following(self, follower_uuid, followee_uuid):
         """Return True if follower follows followee."""
-        follower = self.__find_by_user_uuid(follower_uuid)
-        followee = self.__find_by_user_uuid(followee_uuid)
-        return followee in self._graph[follower]
+        return followee_uuid in self.links[follower_uuid]
 
+    @__check_user_exists
     def followers(self, user_uuid):
         """Return set of all users` uuids following user_uuid."""
-        user = self.__find_by_user_uuid(user_uuid)
-        return {_.uuid for _ in self._graph
-                if user in self._graph[_]}
+        return {follower for follower in self.links
+                if user_uuid in self.links[follower]}
 
+    @__check_user_exists
     def following(self, user_uuid):
         """Return set of all users` uuids followed by user_uuid."""
-        user = self.__find_by_user_uuid(user_uuid)
-        return {_.uuid for _ in self._graph[user]}
+        return set(self.links[user_uuid])
 
+    @__check_user_exists
     def friends(self, user_uuid):
         """Return set of all users` uuids that are friends with user_uuid."""
-        return {_.uuid for _ in self._graph if
-                self.is_following(_.uuid, user_uuid) and
-                self.is_following(user_uuid, _.uuid)}
+        return {user for user in self.links if
+                self.is_following(user, user_uuid) and
+                self.is_following(user_uuid, user)}
 
+    @__check_user_exists
     def max_distance(self, user_uuid):
         """Return the distance to the farthest \
            user from user with user_uuid.
@@ -122,6 +130,7 @@ class SocialGraph:
         # Return the last vertex with it`s level
         return self.__bfs(user_uuid)[-1][1]
 
+    @__check_user_exists
     def min_distance(self, from_user_uuid, to_user_uuid):
         """Return the shortest path between two users in the graph."""
         distance = math.inf
@@ -129,38 +138,40 @@ class SocialGraph:
             if user_uuid == to_user_uuid:
                 distance = level
                 break
+        if distance == math.inf:
+            raise UsersNotConnectedError
         return distance
 
+    @__check_user_exists
     def nth_layer_followings(self, user_uuid, n):
         """Return all users followed by user_uuid at
            distance n.
         """
-        return {
-            user
-            for user, level in self.__bfs(user_uuid)
-            if level == n
-        }
+        return {user for user, level
+                in self.__bfs(user_uuid)
+                if level == n}
 
+    @__check_user_exists
     def generate_feed(self, user_uuid, offset=0, limit=10):
         """Return iterable over the most recent posts,
            from user_uuid`s followees.
         """
-        user = self.__find_by_user_uuid(user_uuid)
-        followees = [followee for followee in self._graph[user]]
+        followees = [followee for followee in self.links[user_uuid]]
         all_posts = [post for followee in followees
-                     for post in followee.get_post()]
+                     for post in self.users[followee].get_post()]
         return sorted(
             all_posts,
             key=lambda post: post.published_at,
             reverse=True
         )[offset:][0:limit]
 
+    @__check_user_exists
     def __bfs(self, start, end=None):
         """Perform BFS on the graph."""
         result = []
         vertices = deque([(start, 0)])
         visited = set()
-        while len(vertices) > 0:
+        while vertices:
             vertex, level = vertices.popleft()
             if vertex not in visited:
                 result.append((vertex, level))

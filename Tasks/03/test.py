@@ -21,7 +21,7 @@ class TestSocialGraph(unittest.TestCase):
         self.graph.add_user(self.michael)
         with self.assertRaises(solution.UserAlreadyExistsError):
             self.graph.add_user(self.michael)
-        self.assertIn(self.michael, self.graph._graph)
+        self.assertIn(self.michael.uuid, self.graph.users)
 
     def test_get_user(self):
         with self.assertRaises(solution.UserDoesNotExistError):
@@ -33,7 +33,8 @@ class TestSocialGraph(unittest.TestCase):
         with self.assertRaises(solution.UserDoesNotExistError):
             self.graph.delete_user(self.michael.uuid)
         self.graph.add_user(self.michael)
-        self.assertNotIn(self.michael.uuid, self.graph._graph)
+        self.graph.delete_user(self.michael.uuid)
+        self.assertNotIn(self.michael.uuid, self.graph.users)
 
     def test_follow(self):
         with self.assertRaises(solution.UserDoesNotExistError):
@@ -54,7 +55,7 @@ class TestSocialGraph(unittest.TestCase):
 
     def test_followers(self):
         with self.assertRaises(solution.UserDoesNotExistError):
-            self.graph.followers(self.michael)
+            self.graph.followers(self.michael.uuid)
         self.graph.follow(self.terry.uuid, self.eric.uuid)
         self.graph.follow(self.john.uuid, self.eric.uuid)
         self.assertEqual({self.terry.uuid, self.john.uuid},
@@ -77,6 +78,8 @@ class TestSocialGraph(unittest.TestCase):
         self.assertIn(self.terry.uuid, self.graph.friends(self.eric.uuid))
 
     def test_max_distance(self):
+        with self.assertRaises(solution.UserDoesNotExistError):
+            self.graph.following(self.michael.uuid)
         self.graph.follow(self.terry.uuid, self.eric.uuid)
         self.graph.follow(self.terry.uuid, self.graham.uuid)
         self.graph.follow(self.graham.uuid, self.eric.uuid)
@@ -84,6 +87,8 @@ class TestSocialGraph(unittest.TestCase):
         self.assertEqual(self.graph.max_distance(self.terry.uuid), 2)
 
     def test_min_distance(self):
+        with self.assertRaises(solution.UsersNotConnectedError):
+            self.graph.min_distance(self.terry.uuid, self.eric.uuid)
         self.graph.follow(self.terry.uuid, self.eric.uuid)
         self.graph.follow(self.terry.uuid, self.graham.uuid)
         self.graph.follow(self.graham.uuid, self.eric.uuid)
