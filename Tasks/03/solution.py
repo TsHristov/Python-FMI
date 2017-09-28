@@ -1,7 +1,7 @@
 import math
 import uuid
 from datetime import datetime
-from collections import deque
+from collections import deque, defaultdict
 
 
 class UserDoesNotExistError(Exception):
@@ -57,7 +57,8 @@ class User:
 class SocialGraph:
     def __init__(self):
         self.users = {}
-        self.links = {}
+        self._user_followers = defaultdict(set)
+        self._user_following = defaultdict(set)
 
     def __check_user_exists(func):
         """Decorator function that checks user existance in the graph."""
@@ -75,7 +76,6 @@ class SocialGraph:
         if user.uuid in self.users:
             raise UserAlreadyExistsError
         self.users[user.uuid] = user
-        self.links[user.uuid] = set()
 
     @__check_user_exists
     def get_user(self, user):
@@ -98,7 +98,8 @@ class SocialGraph:
         """Make User with uuid: follower to follow
            User with uuid: followee.
         """
-        self.links[follower].add(followee)
+        self._user_following[follower].add(followee)
+        self._user_followers[followee].add(follower)
 
     @__check_user_exists
     def unfollow(self, follower, followee):
@@ -106,30 +107,28 @@ class SocialGraph:
            User with uuid: followee.
         """
         if self.is_following(follower, followee):
-            self.links[follower].remove(followee)
+            self._user_following[follower].remove(followee)
+            self._user_followers[followee].remove(follower)
 
     @__check_user_exists
     def is_following(self, follower, followee):
         """Return True if follower follows followee."""
-        return followee in self.links[follower]
+        return follower in self._user_followers[followee]
 
     @__check_user_exists
     def followers(self, user):
         """Return set of all users` uuids following user."""
-        return {follower for follower in self.links
-                if user in self.links[follower]}
+        return self._user_followers[user]
 
     @__check_user_exists
     def following(self, user):
         """Return set of all users` uuids followed by user."""
-        return self.links[user]
+        return self._user_following[user]
 
     @__check_user_exists
     def friends(self, user):
         """Return set of all users` uuids that are friends with user."""
-        return {_ for _ in self.links if
-                self.is_following(_, user) and
-                self.is_following(user, _)}
+        return self._user_followers[user] & self._user_following[user]
 
     @__check_user_exists
     def max_distance(self, user):
@@ -165,7 +164,7 @@ class SocialGraph:
         """Return iterable over the most recent posts,
            from user`s followees.
         """
-        followees = [followee for followee in self.links[user]]
+        followees = self._user_following[user]
         all_posts = [post for followee in followees
                      for post in self.users[followee].get_post()]
         return sorted(
