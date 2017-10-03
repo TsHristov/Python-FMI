@@ -82,11 +82,18 @@ class CodeAnalyzer:
 
     def indentation_size(self):
         """Inspect the code for indentation size errors."""
-        #TODO: Make use of ast.NodeVisitor
-        lineno = self.code.body[0].body[0].lineno
-        col_offset = self.code.body[0].body[0].col_offset
+        last_lineno = 0
         indent = self.RULES['indentation_size']
-        self.issues[lineno] = {self.code_errors.indentation(col_offset, indent)}
+        for node in ast.walk(self.code):
+            if 'body' in node._fields:
+                lineno = node.body[0].lineno
+                col_offset = node.body[0].col_offset
+                if col_offset > last_lineno * indent:
+                    col_offset = col_offset - last_lineno * indent
+                    self.issues[lineno] = {
+                        self.code_errors.indentation(col_offset, indent)
+                    }
+                last_lineno = lineno - 1
 
     def methods_per_class(self):
         pass

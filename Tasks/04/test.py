@@ -7,8 +7,15 @@ class TestCritic(unittest.TestCase):
         code = ('def ugly(indent):\n'
                 '     return indent')
         issues = solution.critic(code)
-        # import pdb;pdb.set_trace()
         self.assertSetEqual(set(issues[2]), {'indentation is 5 instead of 4'})
+        code = ("def some_func():\n"
+                "    for char in a_variable:\n"
+                "         if char != 'a':\n"
+                "             for _ in range(10):\n"
+                "                print('SOOOO MUUUCH INDENTATION')\n")
+        issues = solution.critic(code)
+        self.assertSetEqual(set(issues[4]), {'indentation is 5 instead of 4'})
+        self.assertSetEqual(set(issues[3]), {'indentation is 5 instead of 4'})
 
     def test_two_statements_on_one_line(self):
         code = 'a = 5; b = 6'
@@ -25,7 +32,6 @@ class TestCritic(unittest.TestCase):
         issues = solution.critic(code, max_nesting=3)
         print(issues)
         self.assertSetEqual(set(issues[5]), {'nesting too deep (4 > 3)'})
-
 
     def test_long_line_with_several_statements(self):
         code = ("def some_func():\n"
