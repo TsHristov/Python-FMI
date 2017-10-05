@@ -1,19 +1,23 @@
+import re
 import ast
+from collections import defaultdict
 
 
 class CodeErrors:
     def line_too_long(self, actual, allowed):
-        pass
+        if actual > allowed:
+            return 'line too long ({} > {})'.format(actual, allowed)
 
-    def multiple_expressions_on_the_same_line(self):
-        pass
+    def multiple_expressions(self):
+        return 'multiple expressions on the same line'
 
     def nesting_too_deep(self, actual, allowed):
-        pass
+        if actual > allowed:
+            return 'nesting too deep ({} > {})'.format(actual, allowed)
 
-    def indentation(self, actual, size):
-        if actual > size:
-            return 'indentation is {} instead of {}'.format(actual, size)
+    def indentation(self, actual, allowed):
+        if actual > allowed:
+            return 'indentation is {} instead of {}'.format(actual, allowed)
 
     def too_many_methods_in_class(self, actual, allowed):
         pass
@@ -43,11 +47,12 @@ class CodeAnalyzer:
     }
 
     def __init__(self, code, rules=None):
-        self.code = ast.parse(code)
+        self.parsed_code = ast.parse(code)
+        self.code = code
         self.rules = rules
         # Keys are the line numbers
         # at which errors were found.
-        self.issues = {}
+        self.issues = defaultdict(set)
         self.code_errors = CodeErrors()
 
     @classmethod
@@ -72,28 +77,58 @@ class CodeAnalyzer:
         return self.issues
 
     def line_length(self):
-        pass
+        """Inspect the code for too long lines."""
+        default_length = self.RULES['line_length']
+        for lineno, line in enumerate(self.code.splitlines()):
+            length = len(line)
+            if length > default_length:
+                self.issues[lineno+1].add(
+                    self.code_errors.line_too_long(length, default_length)
+                    )
 
     def forbid_semicolons(self):
-        pass
+        """Inspect the code for semicolon separated statements."""
+        for lineno, line in enumerate(self.code.splitlines()):
+            if re.search('(;)', line):
+                self.issues[lineno+1].add(
+                    self.code_errors.multiple_expressions()
+                )
 
     def max_nesting(self):
-        pass
+        """Inspect the code for too much nesting."""
+        max_nesting_level = 3  # max_nesting
+        nesting_level = 0
+        # Traverse the nodes and find those that are nested
+        # (have 'body' attribute).
+        nodes = [node for node in ast.walk(self.parsed_code.body[0])
+                 if 'body' in node._fields]
+        nesting_level = len(nodes)
+        if nesting_level > max_nesting_level:
+            # The line number where the error was found
+            # is the next one.
+            lineno = nodes[len(nodes)-1].lineno + 1
+            self.issues[lineno].add(
+                self.code_errors.nesting_too_deep(
+                    nesting_level, max_nesting_level
+                )
+            )
 
     def indentation_size(self):
         """Inspect the code for indentation size errors."""
-        last_lineno = 0
+        # Use the previous line offset
+        # as a guide for the next line indentation.
+        last_offset = 0
         indent = self.RULES['indentation_size']
-        for node in ast.walk(self.code):
+        for node in ast.walk(self.parsed_code):
             if 'body' in node._fields:
                 lineno = node.body[0].lineno
                 col_offset = node.body[0].col_offset
-                if col_offset > last_lineno * indent:
-                    col_offset = col_offset - last_lineno * indent
-                    self.issues[lineno] = {
-                        self.code_errors.indentation(col_offset, indent)
-                    }
-                last_lineno = lineno - 1
+                if col_offset > last_offset + indent:
+                    offset = col_offset - last_offset
+                    self.issues[lineno].add(
+                        self.code_errors.indentation(offset, indent)
+                    )
+                last_offset = col_offset
 
     def methods_per_class(self):
         pass

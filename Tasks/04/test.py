@@ -11,7 +11,7 @@ class TestCritic(unittest.TestCase):
         code = ("def some_func():\n"
                 "    for char in a_variable:\n"
                 "         if char != 'a':\n"
-                "             for _ in range(10):\n"
+                "              for _ in range(10):\n"
                 "                print('SOOOO MUUUCH INDENTATION')\n")
         issues = solution.critic(code)
         self.assertSetEqual(set(issues[4]), {'indentation is 5 instead of 4'})
@@ -30,7 +30,6 @@ class TestCritic(unittest.TestCase):
                 "            for _ in range(10):\n"
                 "                print('SOOOO MUUUCH INDENTATION')\n")
         issues = solution.critic(code, max_nesting=3)
-        print(issues)
         self.assertSetEqual(set(issues[5]), {'nesting too deep (4 > 3)'})
 
     def test_long_line_with_several_statements(self):
