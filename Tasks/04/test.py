@@ -43,6 +43,15 @@ class TestCritic(unittest.TestCase):
             'multiple expressions on the same line'
         })
 
+    def test_max_arity(self):
+        code = ("def f(a, b, c, d):\n"
+                "    for i in range(a, b):\n"
+                "        print(i)\n")
+        issues = solution.critic(code, max_arity=3)
+        self.assertSetEqual(set(issues[1]), {
+            'too many arguments (4 > 3)'
+        })
+
 
 if __name__ == '__main__':
     unittest.main()

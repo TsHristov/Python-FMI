@@ -23,7 +23,8 @@ class CodeErrors:
         pass
 
     def too_many_arguments(self, actual, allowed):
-        pass
+        if actual > allowed:
+            return 'too many arguments ({} > {})'.format(actual, allowed)
 
     def trailing_whitespace(self):
         pass
@@ -35,7 +36,7 @@ class CodeErrors:
 class CodeAnalyzer:
     # Set of rules with default values
     # that apply to the code under inspection.
-    RULES = {
+    DEFAULT_RULES = {
         'line_length': 79,
         'forbid_semicolons': True,
         'max_nesting': None,
@@ -46,102 +47,129 @@ class CodeAnalyzer:
         'max_lines_per_function': None
     }
 
-    def __init__(self, code, rules=None):
+    def __init__(self, code):
         self.parsed_code = ast.parse(code)
         self.code = code
-        self.rules = rules
         # Keys are the line numbers
         # at which errors were found.
         self.issues = defaultdict(set)
         self.code_errors = CodeErrors()
 
-    @classmethod
-    def get_instance_methods(cls):
+    def __get_instance_methods(self):
         """Return set of all instance methods."""
         return {method for method in
-                dir(cls) if
-                callable(getattr(cls, method)) and not
+                dir(type(self)) if
+                callable(getattr(type(self), method)) and not
                 method.startswith('__')}
 
-    def analyze(self):
-        """Inpect the code and call all instance
-           methods on it.
+    def analyze(self, **kwargs):
         """
-        if not self.rules:
-            methods = self.get_instance_methods()
-            methods.discard('analyze')
-            methods.discard('get_instance_methods')
-            for method in methods:
-                # Call each method:
-                getattr(type(self), method)(self)
+           Inpect the code and call all instance
+           check methods on it.
+        """
+        methods = self.__get_instance_methods()
+        methods = list(filter(lambda method:
+                              method.startswith('check'),
+                              methods))
+        for method in methods:
+            # Call each method:
+            getattr(type(self), method)(self, **kwargs)
         return self.issues
 
-    def line_length(self):
+    def check_line_length(self, **kwargs):
         """Inspect the code for too long lines."""
-        default_length = self.RULES['line_length']
-        for lineno, line in enumerate(self.code.splitlines()):
-            length = len(line)
-            if length > default_length:
-                self.issues[lineno+1].add(
-                    self.code_errors.line_too_long(length, default_length)
+        try:
+            default_length = kwargs['line_length']
+        except KeyError:
+            # Use the default value instead:
+            default_length = self.DEFAULT_RULES['line_length']
+        for line_number, line in enumerate(self.code.splitlines()):
+            line_length = len(line)
+            if line_length > default_length:
+                self.issues[line_number+1].add(
+                    self.code_errors.line_too_long(line_length, default_length)
                     )
 
-    def forbid_semicolons(self):
+    def check_has_semicolons(self, **kwargs):
         """Inspect the code for semicolon separated statements."""
-        for lineno, line in enumerate(self.code.splitlines()):
+        for line_number, line in enumerate(self.code.splitlines()):
             if re.search('(;)', line):
-                self.issues[lineno+1].add(
+                self.issues[line_number+1].add(
                     self.code_errors.multiple_expressions()
                 )
 
-    def max_nesting(self):
-        """Inspect the code for too much nesting."""
-        max_nesting_level = 3  # max_nesting
-        nesting_level = 0
+    def check_nesting(self, **kwargs):
+        """Inspect the code for too much nested expressions."""
+        try:
+            max_nesting = kwargs['max_nesting']
+        except KeyError:
+            return
         # Traverse the nodes and find those that are nested
         # (have 'body' attribute).
         nodes = [node for node in ast.walk(self.parsed_code.body[0])
                  if 'body' in node._fields]
         nesting_level = len(nodes)
-        if nesting_level > max_nesting_level:
+        if nesting_level > max_nesting:
             # The line number where the error was found
-            # is the next one.
-            lineno = nodes[len(nodes)-1].lineno + 1
-            self.issues[lineno].add(
+            # is the next one (thus + 1):
+            line_number = nodes[len(nodes)-1].lineno + 1
+            self.issues[line_number].add(
                 self.code_errors.nesting_too_deep(
-                    nesting_level, max_nesting_level
+                    nesting_level, max_nesting
                 )
             )
 
-    def indentation_size(self):
+    def check_indentation(self, **kwargs):
         """Inspect the code for indentation size errors."""
+        try:
+            indentation_size = kwargs['indentation_size']
+        except KeyError:
+            indentation_size = self.DEFAULT_RULES['indentation_size']
+        # Traverse the nodes and find those that are nested
+        # (have 'body' attribute).
+        nodes = [node for node in ast.walk(self.parsed_code.body[0])
+                 if 'body' in node._fields]
         # Use the previous line offset
         # as a guide for the next line indentation.
         last_offset = 0
-        indent = self.RULES['indentation_size']
-        for node in ast.walk(self.parsed_code):
-            if 'body' in node._fields:
-                lineno = node.body[0].lineno
-                col_offset = node.body[0].col_offset
-                if col_offset > last_offset + indent:
-                    offset = col_offset - last_offset
-                    self.issues[lineno].add(
-                        self.code_errors.indentation(offset, indent)
-                    )
-                last_offset = col_offset
+        for node in nodes:
+            line_number = node.body[0].lineno
+            col_offset = node.body[0].col_offset
+            if col_offset > last_offset + indentation_size:
+                offset = col_offset - last_offset
+                self.issues[line_number].add(
+                    self.code_errors.indentation(offset, indentation_size)
+                )
+            last_offset = col_offset
 
-    def methods_per_class(self):
+    def check_methods_per_class(self, **kwargs):
         pass
 
-    def max_arity(self):
+    def check_arity(self, **kwargs):
+        """
+           Inspect the code for too many arguments per
+           function/method.
+        """
+        try:
+            max_arity = kwargs['max_arity']
+        except KeyError:
+            return
+        node = self.parsed_code.body[0]
+        if not isinstance(node, ast.FunctionDef):
+            return
+        arity = len(node.args.args)
+        if arity > max_arity:
+            line_number = node.lineno
+            self.issues[line_number].add(
+                self.code_errors.too_many_arguments(arity, max_arity)
+            )
+
+    def check_trailing_whitespace(self, **kwargs):
         pass
 
-    def forbid_trailing_whitespace(self):
-        pass
-
-    def max_lines_per_function(self):
+    def check_lines_per_function(self, **kwargs):
         pass
 
 
 def critic(code, **rules):
-    return CodeAnalyzer(code).analyze()
+    return CodeAnalyzer(code).analyze(**rules)
