@@ -81,5 +81,20 @@ class TestCritic(unittest.TestCase):
             'trailing whitespace'
         })
 
+    def test_check_lines_per_function(self):
+        code = ("def f():\n"
+                "    for i in range(10):\n"
+                "        print(i)\n"
+                "                \n"
+                "    print(\"a\")\n"
+                "    print(\"b\")\n"
+                "                \n"
+                "    print(\"c\")\n"
+                "    print(\"c\")\n")
+        issues = solution.critic(code, max_lines_per_function=4)
+        self.assertSetEqual(set(issues[1]), {
+            'method with too many lines (6 > 4)'
+        })
+
 if __name__ == '__main__':
     unittest.main()

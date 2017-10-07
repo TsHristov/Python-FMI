@@ -5,41 +5,40 @@ from collections import defaultdict
 
 class CodeErrors:
     def line_too_long(self, actual, allowed):
-        if actual > allowed:
-            return 'line too long ({} > {})'.format(
-                actual, allowed
-            )
+        return 'line too long ({} > {})'.format(
+            actual, allowed
+        )
 
     def multiple_expressions(self):
         return 'multiple expressions on the same line'
 
     def nesting_too_deep(self, actual, allowed):
-        if actual > allowed:
-            return 'nesting too deep ({} > {})'.format(
-                actual, allowed
-            )
+        return 'nesting too deep ({} > {})'.format(
+            actual, allowed
+        )
 
     def indentation(self, actual, allowed):
-        if actual > allowed:
-            return 'indentation is {} instead of {}'.format(
-                actual, allowed
-            )
+        return 'indentation is {} instead of {}'.format(
+            actual, allowed
+        )
 
     def too_many_methods_per_class(self, actual, allowed):
-        if actual > allowed:
-            return 'too many methods in class ({} > {})'.format(
-                actual, allowed
-            )
+        return 'too many methods in class ({} > {})'.format(
+            actual, allowed
+        )
 
     def too_many_arguments(self, actual, allowed):
-        if actual > allowed:
-            return 'too many arguments ({} > {})'.format(actual, allowed)
+        return 'too many arguments ({} > {})'.format(
+            actual, allowed
+        )
 
     def trailing_whitespace(self):
         return 'trailing whitespace'
 
     def too_many_lines(self, actual, allowed):
-        pass
+        return 'method with too many lines ({} > {})'.format(
+            actual, allowed
+        )
 
 
 class CodeAnalyzer:
@@ -214,8 +213,30 @@ class CodeAnalyzer:
                 )
 
     def check_lines_per_function(self, **kwargs):
-        pass
+        """
+           Inspect the code for too many lines
+           per function/method.
+        """
+        try:
+            max_lines = kwargs['max_lines_per_function']
+        except KeyError:
+            return
+        function_definition = self.parsed_code.body[0]
+        if not isinstance(function_definition, ast.FunctionDef):
+            return
+        code_lines = self.code.splitlines()[1:]
+        # Filter out the lines, which do
+        # not consist only of whitespaces:
+        logic_lines = len(list(filter(lambda line:
+                                  line != re.search('\s+', line).group(),
+                                  code_lines)))
+        if logic_lines > max_lines:
+            line_number = function_definition.lineno
+            self.issues[line_number].add(
+                self.code_errors.too_many_lines(
+                    logic_lines, max_lines)
+                )
 
-
+            
 def critic(code, **rules):
     return CodeAnalyzer(code).analyze(**rules)
