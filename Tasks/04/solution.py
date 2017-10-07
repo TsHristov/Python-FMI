@@ -6,29 +6,37 @@ from collections import defaultdict
 class CodeErrors:
     def line_too_long(self, actual, allowed):
         if actual > allowed:
-            return 'line too long ({} > {})'.format(actual, allowed)
+            return 'line too long ({} > {})'.format(
+                actual, allowed
+            )
 
     def multiple_expressions(self):
         return 'multiple expressions on the same line'
 
     def nesting_too_deep(self, actual, allowed):
         if actual > allowed:
-            return 'nesting too deep ({} > {})'.format(actual, allowed)
+            return 'nesting too deep ({} > {})'.format(
+                actual, allowed
+            )
 
     def indentation(self, actual, allowed):
         if actual > allowed:
-            return 'indentation is {} instead of {}'.format(actual, allowed)
+            return 'indentation is {} instead of {}'.format(
+                actual, allowed
+            )
 
     def too_many_methods_per_class(self, actual, allowed):
         if actual > allowed:
-            return 'too many methods in class ({} > {})'.format(actual, allowed)
+            return 'too many methods in class ({} > {})'.format(
+                actual, allowed
+            )
 
     def too_many_arguments(self, actual, allowed):
         if actual > allowed:
             return 'too many arguments ({} > {})'.format(actual, allowed)
 
     def trailing_whitespace(self):
-        pass
+        return 'trailing whitespace'
 
     def too_many_lines(self, actual, allowed):
         pass
@@ -84,18 +92,20 @@ class CodeAnalyzer:
         except KeyError:
             # Use the default value instead:
             default_length = self.DEFAULT_RULES['line_length']
-        for line_number, line in enumerate(self.code.splitlines()):
+        code = enumerate(self.code.splitlines(), start=1)
+        for line_number, line in code:
             line_length = len(line)
             if line_length > default_length:
-                self.issues[line_number+1].add(
+                self.issues[line_number].add(
                     self.code_errors.line_too_long(line_length, default_length)
                     )
 
     def check_has_semicolons(self, **kwargs):
         """Inspect the code for semicolon separated statements."""
-        for line_number, line in enumerate(self.code.splitlines()):
+        code = enumerate(self.code.splitlines(), start=1)
+        for line_number, line in code:
             if re.search('(;)', line):
-                self.issues[line_number+1].add(
+                self.issues[line_number].add(
                     self.code_errors.multiple_expressions()
                 )
 
@@ -107,7 +117,8 @@ class CodeAnalyzer:
             return
         # Traverse the nodes and find those that are nested
         # (have 'body' attribute).
-        nodes = [(node, node.lineno) for node in ast.walk(self.parsed_code.body[0])
+        nodes = [(node, node.lineno) for node
+                 in ast.walk(self.parsed_code.body[0])
                  if 'body' in node._fields]
         nesting_level = len(nodes)
         if nesting_level > max_nesting:
@@ -189,7 +200,18 @@ class CodeAnalyzer:
             )
 
     def check_trailing_whitespace(self, **kwargs):
-        pass
+        """
+           Inspect the code for trailing whitespace
+           at the end of the line.
+        """
+        code = enumerate(self.code.splitlines(), start=1)
+        for line_number, line in code:
+            # Check whether there are trailing
+            # whitespaces at the end of the line:
+            if re.search('(?<=\S)\s+$', line):
+                self.issues[line_number].add(
+                    self.code_errors.trailing_whitespace()
+                )
 
     def check_lines_per_function(self, **kwargs):
         pass

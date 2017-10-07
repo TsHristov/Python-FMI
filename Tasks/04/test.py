@@ -69,5 +69,17 @@ class TestCritic(unittest.TestCase):
         issues = solution.critic(code)
         self.assertFalse(issues)
 
+    def test_check_trailing_whitespace(self):
+        code = ("def f(): \n"
+                "    for i in range(10):\n"
+                "        print(i)  \n")
+        issues = solution.critic(code)
+        self.assertSetEqual(set(issues[1]), {
+            'trailing whitespace'
+        })
+        self.assertSetEqual(set(issues[3]), {
+            'trailing whitespace'
+        })
+
 if __name__ == '__main__':
     unittest.main()
