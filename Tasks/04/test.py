@@ -52,6 +52,22 @@ class TestCritic(unittest.TestCase):
             'too many arguments (4 > 3)'
         })
 
+    def test_check_methods_per_class(self):
+        code = ("class A:\n"
+                "    def __init__(self):\n"
+                "        pass\n"
+                "    def first(self):\n"
+                "        pass\n"
+                "    def second(self):\n"
+                "        pass\n"
+                "    def third(self):\n"
+                "        pass\n")
+        issues = solution.critic(code, methods_per_class=3)
+        self.assertSetEqual(set(issues[8]), {
+            'too many methods in class (4 > 3)'
+        })
+        issues = solution.critic(code)
+        self.assertFalse(issues)
 
 if __name__ == '__main__':
     unittest.main()

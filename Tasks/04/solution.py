@@ -19,8 +19,9 @@ class CodeErrors:
         if actual > allowed:
             return 'indentation is {} instead of {}'.format(actual, allowed)
 
-    def too_many_methods_in_class(self, actual, allowed):
-        pass
+    def too_many_methods_per_class(self, actual, allowed):
+        if actual > allowed:
+            return 'too many methods in class ({} > {})'.format(actual, allowed)
 
     def too_many_arguments(self, actual, allowed):
         if actual > allowed:
@@ -106,13 +107,13 @@ class CodeAnalyzer:
             return
         # Traverse the nodes and find those that are nested
         # (have 'body' attribute).
-        nodes = [node for node in ast.walk(self.parsed_code.body[0])
+        nodes = [(node, node.lineno) for node in ast.walk(self.parsed_code.body[0])
                  if 'body' in node._fields]
         nesting_level = len(nodes)
         if nesting_level > max_nesting:
             # The line number where the error was found
             # is the next one (thus + 1):
-            line_number = nodes[len(nodes)-1].lineno + 1
+            line_number = nodes[-1][1] + 1
             self.issues[line_number].add(
                 self.code_errors.nesting_too_deep(
                     nesting_level, max_nesting
@@ -143,7 +144,30 @@ class CodeAnalyzer:
             last_offset = col_offset
 
     def check_methods_per_class(self, **kwargs):
-        pass
+        """
+           Inspect the code for too many methods per
+           class.
+        """
+        try:
+            methods_per_class = kwargs['methods_per_class']
+        except KeyError:
+            return
+        klass = self.parsed_code.body[0]
+        if not isinstance(klass, ast.ClassDef):
+            return
+        methods = [(node, node.lineno) for node in ast.walk(klass)
+                   if isinstance(node, ast.FunctionDef)]
+        try:
+            # Get the last method of the class
+            # and its line number:
+            line_number = methods[-1][1]
+            self.issues[line_number].add(
+                self.code_errors.too_many_methods_per_class(
+                    len(methods), methods_per_class
+                    )
+                )
+        except IndexError:
+            return
 
     def check_arity(self, **kwargs):
         """
