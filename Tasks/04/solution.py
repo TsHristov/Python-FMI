@@ -65,10 +65,14 @@ class CodeAnalyzer:
 
     def __get_instance_methods(self):
         """Return set of all instance methods."""
-        return {method for method in
-                dir(type(self)) if
-                callable(getattr(type(self), method)) and not
-                method.startswith('__')}
+        methods = {method for method in
+                   dir(type(self)) if
+                   callable(getattr(type(self), method)) and not
+                   method.startswith('__')}
+        # Filter out only the 'check_' methods:
+        return filter(lambda method:
+                      method.startswith('check'),
+                      methods)
 
     def analyze(self, **kwargs):
         """
@@ -76,9 +80,6 @@ class CodeAnalyzer:
            check methods on it.
         """
         methods = self.__get_instance_methods()
-        methods = list(filter(lambda method:
-                              method.startswith('check'),
-                              methods))
         for method in methods:
             # Call each method:
             getattr(type(self), method)(self, **kwargs)
@@ -103,7 +104,7 @@ class CodeAnalyzer:
         """Inspect the code for semicolon separated statements."""
         code = enumerate(self.code.splitlines(), start=1)
         for line_number, line in code:
-            if re.search('(;)', line):
+            if re.search(';', line):
                 self.issues[line_number].add(
                     self.code_errors.multiple_expressions()
                 )
@@ -118,7 +119,7 @@ class CodeAnalyzer:
         # (have 'body' attribute).
         nodes = [(node, node.lineno) for node
                  in ast.walk(self.parsed_code.body[0])
-                 if 'body' in node._fields]
+                 if hasattr(node, 'body')]
         nesting_level = len(nodes)
         if nesting_level > max_nesting:
             # The line number where the error was found
@@ -135,11 +136,12 @@ class CodeAnalyzer:
         try:
             indentation_size = kwargs['indentation_size']
         except KeyError:
+            # Use the default value instead:
             indentation_size = self.DEFAULT_RULES['indentation_size']
         # Traverse the nodes and find those that are nested
         # (have 'body' attribute).
         nodes = [node for node in ast.walk(self.parsed_code.body[0])
-                 if 'body' in node._fields]
+                 if hasattr(node, 'body')]
         # Use the previous line offset
         # as a guide for the next line indentation.
         last_offset = 0
@@ -207,7 +209,7 @@ class CodeAnalyzer:
         for line_number, line in code:
             # Check whether there are trailing
             # whitespaces at the end of the line:
-            if re.search('(?<=\S)\s+$', line):
+            if re.search('\s$', line):
                 self.issues[line_number].add(
                     self.code_errors.trailing_whitespace()
                 )
@@ -228,8 +230,8 @@ class CodeAnalyzer:
         # Filter out the lines, which do
         # not consist only of whitespaces:
         logic_lines = len(list(filter(lambda line:
-                                  line != re.search('\s+', line).group(),
-                                  code_lines)))
+                          line != re.search('\s+', line).group(),
+                          code_lines)))
         if logic_lines > max_lines:
             line_number = function_definition.lineno
             self.issues[line_number].add(
@@ -237,6 +239,6 @@ class CodeAnalyzer:
                     logic_lines, max_lines)
                 )
 
-            
+
 def critic(code, **rules):
     return CodeAnalyzer(code).analyze(**rules)
