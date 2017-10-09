@@ -41,7 +41,7 @@ class CodeErrors:
         )
 
 
-class CodeAnalyzer:
+class CodeCritic:
     # Set of rules with default values
     # that apply to the code under inspection.
     DEFAULT_RULES = {
@@ -205,6 +205,12 @@ class CodeAnalyzer:
            Inspect the code for trailing whitespace
            at the end of the line.
         """
+        try:
+            forbid_trailing_whitespace = kwargs['forbid_trailing_whitespace']
+        except KeyError:
+            forbid_trailing_whitespace = self.DEFAULT_RULES['forbid_trailing_whitespace']
+        if not forbid_trailing_whitespace:
+            return
         code = enumerate(self.code.splitlines(), start=1)
         for line_number, line in code:
             # Check whether there are trailing
@@ -241,4 +247,4 @@ class CodeAnalyzer:
 
 
 def critic(code, **rules):
-    return CodeAnalyzer(code).analyze(**rules)
+    return CodeCritic(code).analyze(**rules)

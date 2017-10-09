@@ -2,7 +2,7 @@ import unittest
 import solution
 
 
-class TestCritic(unittest.TestCase):
+class TestCodeCritic(unittest.TestCase):
     def test_indentation(self):
         code = ('def ugly(indent):\n'
                 '     return indent')
@@ -25,12 +25,19 @@ class TestCritic(unittest.TestCase):
 
     def test_too_deep_nesting(self):
         code = ("def some_func():\n"
+                "    a = 'something'; b = 4\n"
                 "    for char in a_variable:\n"
                 "        if char != 'a':\n"
                 "            for _ in range(10):\n"
-                "                print('SOOOO MUUUCH INDENTATION')\n")
+                "                 print('SOOOO MUUUCH INDENTATION')\n")
         issues = solution.critic(code, max_nesting=3)
-        self.assertSetEqual(set(issues[5]), {'nesting too deep (4 > 3)'})
+        self.assertSetEqual(set(issues[6]), {
+            'nesting too deep (4 > 3)',
+            'indentation is 5 instead of 4'
+            })
+        self.assertSetEqual(set(issues[2]), {
+            'multiple expressions on the same line'
+        })
 
     def test_long_line_with_several_statements(self):
         code = ("def some_func():\n"
@@ -44,12 +51,13 @@ class TestCritic(unittest.TestCase):
         })
 
     def test_max_arity(self):
-        code = ("def f(a, b, c, d):\n"
+        code = ("def f(a, b, c, d): \n"
                 "    for i in range(a, b):\n"
                 "        print(i)\n")
         issues = solution.critic(code, max_arity=3)
         self.assertSetEqual(set(issues[1]), {
-            'too many arguments (4 > 3)'
+            'too many arguments (4 > 3)',
+            'trailing whitespace'
         })
 
     def test_check_methods_per_class(self):
@@ -60,29 +68,32 @@ class TestCritic(unittest.TestCase):
                 "        pass\n"
                 "    def second(self):\n"
                 "        pass\n"
-                "    def third(self):\n"
+                "    def third(self): \n"
                 "        pass\n")
         issues = solution.critic(code, methods_per_class=3)
         self.assertSetEqual(set(issues[8]), {
-            'too many methods in class (4 > 3)'
+            'too many methods in class (4 > 3)',
+            'trailing whitespace'
         })
-        issues = solution.critic(code)
+        issues = solution.critic(code,
+                                 forbid_trailing_whitespace=False)
         self.assertFalse(issues)
 
     def test_check_trailing_whitespace(self):
         code = ("def f(): \n"
                 "    for i in range(10):\n"
-                "        print(i)  \n")
+                "        print(i); a = 3  \n")
         issues = solution.critic(code)
         self.assertSetEqual(set(issues[1]), {
             'trailing whitespace'
         })
         self.assertSetEqual(set(issues[3]), {
-            'trailing whitespace'
+            'trailing whitespace',
+            'multiple expressions on the same line'
         })
 
     def test_check_lines_per_function(self):
-        code = ("def f():\n"
+        code = ("def f(): \n"
                 "    for i in range(10):\n"
                 "        print(i)\n"
                 "                \n"
@@ -93,8 +104,10 @@ class TestCritic(unittest.TestCase):
                 "    print(\"c\")\n")
         issues = solution.critic(code, max_lines_per_function=4)
         self.assertSetEqual(set(issues[1]), {
-            'method with too many lines (6 > 4)'
+            'method with too many lines (6 > 4)',
+            'trailing whitespace'
         })
+
 
 if __name__ == '__main__':
     unittest.main()
